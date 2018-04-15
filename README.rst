@@ -33,8 +33,8 @@ Databases are configured through YAML files. For example:
     keyspace: herbie
     profiles:
       test:
+        keyspace: herbie_test
         replication:
-          keyspace: herbie_test
           class: SimpleStrategy
           replication_factor: 3
       prod:
