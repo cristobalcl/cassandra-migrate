@@ -124,6 +124,11 @@ class Migrator(object):
         except KeyError:
             raise ValueError("Invalid profile name '{}'".format(profile))
 
+        self._keyspace = self.current_profile['keyspace'] or config.keyspace
+        if not self._keyspace:
+            raise ValueError('No keyspace is defined. Configure it the config '
+                             'file.')
+
         if user:
             auth_provider = PlainTextAuthProvider(user, password)
         else:
@@ -226,7 +231,7 @@ class Migrator(object):
         `keyspace` and `table` are interpolated as named arguments
         """
         return query.format(
-            keyspace=self.config.keyspace, table=self.config.migrations_table,
+            keyspace=self._keyspace, table=self.config.migrations_table,
             **kwargs)
 
     def _execute(self, query, *args, **kwargs):
@@ -238,7 +243,7 @@ class Migrator(object):
     def _keyspace_exists(self):
         self._init_session()
 
-        return self.config.keyspace in self.cluster.metadata.keyspaces
+        return self._keyspace in self.cluster.metadata.keyspaces
 
     def _ensure_keyspace(self):
         """Create the keyspace if it does not exist"""
@@ -246,7 +251,7 @@ class Migrator(object):
         if self._keyspace_exists():
             return
 
-        self.logger.info("Creating keyspace '{}'".format(self.config.keyspace))
+        self.logger.info("Creating keyspace '{}'".format(self._keyspace))
 
         profile = self.current_profile
         self._execute(self._q(
@@ -254,18 +259,18 @@ class Migrator(object):
             replication=cassandra_ddl_repr(profile['replication']),
             durable_writes=cassandra_ddl_repr(profile['durable_writes'])))
 
-        self.cluster.refresh_keyspace_metadata(self.config.keyspace)
+        self.cluster.refresh_keyspace_metadata(self._keyspace)
 
     def _table_exists(self):
         self._init_session()
 
-        ks_metadata = self.cluster.metadata.keyspaces.get(self.config.keyspace,
+        ks_metadata = self.cluster.metadata.keyspaces.get(self._keyspace,
                                                           None)
         # Fail if the keyspace is missing. If it should be created
         # automatically _ensure_keyspace() must be called first.
         if not ks_metadata:
             raise ValueError("Keyspace '{}' does not exist, "
-                             "stopping".format(self.config.keyspace))
+                             "stopping".format(self._keyspace))
 
         return self.config.migrations_table in ks_metadata.tables
 
@@ -277,11 +282,11 @@ class Migrator(object):
 
         self.logger.info(
             "Creating table '{table}' in keyspace '{keyspace}'".format(
-                keyspace=self.config.keyspace,
+                keyspace=self._keyspace,
                 table=self.config.migrations_table))
 
         self._execute(self._q(CREATE_MIGRATIONS_TABLE))
-        self.cluster.refresh_table_metadata(self.config.keyspace,
+        self.cluster.refresh_table_metadata(self._keyspace,
                                             self.config.migrations_table)
 
     def _verify_migrations(self, migrations, ignore_failed=False,
@@ -500,7 +505,7 @@ class Migrator(object):
             # Set default keyspace so migrations don't need to refer to it
             # manually
             # Fixes https://github.com/Cobliteam/cassandra-migrate/issues/5
-            self.session.execute('USE {};'.format(self.config.keyspace))
+            self.session.execute('USE {};'.format(self._keyspace))
 
         for version, migration in migrations:
             if version > target_version:
@@ -547,7 +552,7 @@ class Migrator(object):
         self._check_cluster()
 
         self.logger.info("Dropping existing keyspace '{}'".format(
-            self.config.keyspace))
+            self._keyspace))
 
         self._execute(self._q(DROP_KEYSPACE))
         self.cluster.refresh_schema_metadata()
@@ -563,14 +568,14 @@ class Migrator(object):
         self._check_cluster()
 
         if not self._keyspace_exists():
-            print("Keyspace '{}' does not exist".format(self.config.keyspace))
+            print("Keyspace '{}' does not exist".format(self._keyspace))
             return
 
         if not self._table_exists():
             print(
                 "Migration table '{table}' does not exist in "
                 "keyspace '{keyspace}'".format(
-                    keyspace=self.config.keyspace,
+                    keyspace=self._keyspace,
                     table=self.config.migrations_table))
             return
 
@@ -581,7 +586,7 @@ class Migrator(object):
         latest_version = len(self.config.migrations)
 
         print(tabulate((
-            ('Keyspace:', self.config.keyspace),
+            ('Keyspace:', self._keyspace),
             ('Migrations table:', self.config.migrations_table),
             ('Current DB version:', last_version),
             ('Latest DB version:', latest_version)),

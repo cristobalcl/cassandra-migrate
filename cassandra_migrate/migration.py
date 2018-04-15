@@ -87,7 +87,6 @@ class Migration(namedtuple('Migration',
             'full_desc': description,
             'next_version': next_version,
             'date': date,
-            'keyspace': config.keyspace
         }
 
         if output == "python":

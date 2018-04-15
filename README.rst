@@ -32,6 +32,11 @@ Databases are configured through YAML files. For example:
 
     keyspace: herbie
     profiles:
+      test:
+        replication:
+          keyspace: herbie_test
+          class: SimpleStrategy
+          replication_factor: 3
       prod:
         replication:
           class: SimpleStrategy
@@ -58,21 +63,21 @@ For example
 
     # Custom initial migration content
     new_migration_text: |
-      /* Cassandra migration for keyspace {keyspace}.
+      /* Cassandra migration.
          Version {next_version} - {date}
 
          {full_desc} */
 
     # Custom initial migration content for cql scripts
     new_cql_migration_text: |
-      /* Cassandra migration for keyspace {keyspace}.
+      /* Cassandra migration.
          Version {next_version} - {date}
 
          {full_desc} */
    
     # Custom initial migration content for python scripts
     new_python_migration_text: |
-      # Cassandra migration for keyspace {keyspace}.
+      # Cassandra migration.
       # Version {next_version} - {date}
       # {full_desc} */
 
@@ -96,7 +101,6 @@ following parameters:
 - ``date``: current date in UTC. Pay attention to the choice of formatting,
   otherwise you might include spaces in the file name. The above example should
   be a good starting point.
-- ``keyspace``: name of the configured keyspace.
 
 The format string should *not* contain the .cql or .py extensions, as it they
 added automatically.
@@ -115,8 +119,9 @@ Profiles
 --------
 
 Profiles can be defined in the configuration file. They can configure
-the ``replication`` and ``durable_writes`` parameters for
-``CREATE KEYSPACE``. A default ``dev`` profile is implicitly defined
+the ``replication``, ``durable_writes`` and ``keyspace`` parameters for
+``CREATE KEYSPACE``. If no ``keyspace`` is defined, the global
+keyspace name will be inherited. A default ``dev`` profile is implicitly defined
 using a replication factor of 1.
 
 Usage

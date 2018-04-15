@@ -11,21 +11,21 @@ from .migration import Migration
 
 
 DEFAULT_NEW_MIGRATION_TEXT = """
-/* Cassandra migration for keyspace {keyspace}.
+/* Cassandra migration.
    Version {next_version} - {date}
 
    {full_desc} */
 """.lstrip()
 
 DEFAULT_NEW_CQL_MIGRATION_TEXT = """
-/* Cassandra migration for keyspace {keyspace}.
+/* Cassandra migration.
    Version {next_version} - {date}
 
    {full_desc} */
 """.lstrip()
 
 DEFAULT_NEW_PYTHON_MIGRATION_TEXT = """
-# Cassandra migration for keyspace {keyspace}.
+# Cassandra migration.
 # Version {next_version} - {date}
 # {full_desc}
 
@@ -52,8 +52,8 @@ class MigrationConfig(object):
 
     Configuration includes:
     - Keyspace to be managed
-    - Possible keyspace profiles, to configure replication in different
-      environments
+    - Possible profiles, to configure replication in different environments or
+      different keyspaces
     - Path to load migration files from
     - Table to store migrations state in
     - The loaded migrations themselves (instances of Migration)
@@ -74,12 +74,13 @@ class MigrationConfig(object):
         at least `keyspace`, `migrations_path` and `migrations_table`
         """
 
-        self.keyspace = _assert_type(data, 'keyspace', str)
+        self.keyspace = _assert_type(data, 'keyspace', str, default='')
 
         self.profiles = self.DEFAULT_PROFILES.copy()
         profiles = _assert_type(data, 'profiles', dict, default={})
         for name, profile in profiles.items():
             self.profiles[name] = {
+                'keyspace': _assert_type(profile, 'keyspace', str, default=''),
                 'replication': _assert_type(profile, 'replication', dict),
                 'durable_writes': _assert_type(profile, 'durable_writes',
                                                bool, default=True)
