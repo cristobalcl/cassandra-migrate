@@ -126,8 +126,7 @@ class Migrator(object):
 
         self._keyspace = self.current_profile['keyspace'] or config.keyspace
         if not self._keyspace:
-            raise ValueError('No keyspace is defined. Configure it the config '
-                             'file.')
+            raise ValueError('No keyspace configured')
 
         if user:
             auth_provider = PlainTextAuthProvider(user, password)
